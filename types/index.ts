@@ -1,3 +1,8 @@
+// FIX: Add a triple-slash directive to include Vite's client types.
+// This provides type definitions for `import.meta.env` and resolves TypeScript errors
+// related to accessing environment variables.
+/// <reference types="vite/client" />
+
 export enum Role { Admin = 'ADMIN', Client = 'CLIENT' }
 export enum DrawStatus { Upcoming = 'UPCOMING', Open = 'OPEN', Closed = 'CLOSED', Finished = 'FINISHED', Suspended = 'SUSPENDED', Declared = 'DECLARED' }
 export enum GameType { OneDigit = '1D', TwoDigits = '2D', ThreeDigits = '3D', FourDigits = '4D', Combo = 'COMBO', Positional = 'POSITIONAL' }

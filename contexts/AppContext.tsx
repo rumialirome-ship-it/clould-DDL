@@ -7,7 +7,9 @@ const AppContext = createContext<AppContextType | null>(null);
 
 // Helper for API calls
 const apiFetch = async (path: string, options: RequestInit = {}) => {
-    const API_BASE_URL = ''; // Backend server address is relative
+    // Use the Vite environment variable for the API base URL.
+    // This decouples the frontend from the backend's location.
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
     const token = localStorage.getItem('ddl_token');
     const headers = new Headers(options.headers || {});
     headers.set('Content-Type', 'application/json');

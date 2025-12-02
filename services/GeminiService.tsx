@@ -2,14 +2,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Draw, Bet, Client, SmartAnalysisReport, SmartInterimReport, DrawStatus } from '../types/index.ts';
 import { isBetWinner } from '../utils/helpers.ts';
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 let ai: GoogleGenAI | null = null;
 
 if (API_KEY) {
     ai = new GoogleGenAI({ apiKey: API_KEY });
 } else {
     // This message will be visible in the developer console.
-    console.error("Gemini API Key is missing. AI-powered analysis will be disabled. Please provide the API_KEY environment variable during the build process.");
+    console.error("Gemini API Key is missing. AI-powered analysis will be disabled. Please set the VITE_GEMINI_API_KEY environment variable.");
 }
 
 const finalAnalysisSchema = {

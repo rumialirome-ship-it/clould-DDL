@@ -15,6 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// Enable CORS for all routes. In a production environment with a separate frontend
+// domain (like on Cloudflare Pages), you might want to restrict this for security.
+// Example: app.use(cors({ origin: 'https://your-frontend-domain.com' }));
 app.use(cors());
 app.use(express.json());
 

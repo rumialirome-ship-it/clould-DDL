@@ -1,10 +1,19 @@
 # Daily Dubai Lottery Application
 
-This is a full-stack lottery application with a React frontend and an Express.js backend. This guide provides instructions for deploying the application to a Virtual Private Server (VPS).
+This is a full-stack lottery application with a React frontend and an Express.js backend. This guide provides instructions for deploying the application.
 
-## Deployment to VPS
+## Deployment Architectures
 
-Follow these steps to get your application running in a production environment on a Linux-based VPS.
+There are two recommended ways to deploy this application:
+
+1.  **All-in-One VPS:** Simple to set up, with both the frontend and backend running on a single server.
+2.  **Jamstack with Cloudflare Pages (Recommended):** A modern, high-performance setup where the frontend is deployed to Cloudflare's global edge network, and the backend runs on a separate VPS. This provides superior speed, scalability, and security.
+
+---
+
+## Deployment Option 1: All-in-One VPS
+
+Follow these steps to get your application running in a production environment on a single Linux-based VPS.
 
 ### 1. Prerequisites on the VPS
 
@@ -39,108 +48,39 @@ cd <your-project-directory>
 
 ### 3. Build the Frontend
 
-The React frontend needs to be compiled into static HTML, CSS, and JavaScript files. Before running the build, you must make the Gemini API key available as an environment variable.
+The React frontend needs to be compiled into static files. Before running the build, create a `.env` file in the project's root directory to hold your environment variables.
+
+```bash
+# In the project's root directory
+nano .env
+```
+
+Paste the following into the file, replacing the placeholder with your actual Gemini API key.
+
+```env
+# This key is for frontend AI features
+VITE_GEMINI_API_KEY=your_google_api_key_here
+```
+
+Now, install dependencies and run the build script.
 
 ```bash
 # Install all frontend dependencies
 npm install
 
-# Run the build script, providing your API key
-# You can get your key from Google AI Studio
-API_KEY=AIzaSyCF0j0LFCwPdpz30sdfiyEHG44qlLIGW1Q npm run build
+# Run the build script
+npm run build
 ```
 
-This command will create a `dist` directory in your project root, containing the optimized frontend application with the API key embedded.
+This will create a `dist` directory containing the optimized frontend application.
 
-### 4. Set Up the Backend Application
+### 4. Set Up the Backend
 
-Navigate to the backend directory and install its dependencies first. This is a crucial step before running any backend scripts.
+Follow the detailed instructions in the [backend/README.md](./backend/README.md) file to set up the database, configure the backend `.env` file, and seed the database.
 
-```bash
-# From your project's root directory, navigate to the backend
-cd backend
+### 5. Start the Application with PM2
 
-# Install all backend dependencies
-npm install
-```
-
-### 5. Set Up the Backend Database
-
-Log in to MySQL and create a database and a user for the application.
-
-```bash
-sudo mysql
-```
-
-Inside the MySQL prompt, execute the following commands. Replace `'your_strong_password'` with a secure password. These commands are safe to run multiple times; they will not cause errors if the database or user already exists.
-
-```sql
-CREATE DATABASE IF NOT EXISTS mydb;
-CREATE USER IF NOT EXISTS 'ddl_user'@'localhost' IDENTIFIED BY 'your_strong_password';
-GRANT ALL PRIVILEGES ON mydb.* TO 'ddl_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-#### 5.1. Create Database Schema and Seed/Reset Data
-
-Now that the backend dependencies are installed, you can run the script to automatically set up the database tables and initial user accounts.
-
-```bash
-# This assumes you are already in the 'backend' directory
-# This command will create tables and seed/reset initial data
-npm run db:seed
-```
-
-This command is **safe to run multiple times**. It performs the following actions:
-1.  **Creates Schema:** Creates all required tables (`users`, `clients`, `draws`, `bets`, `transactions`) if they don't already exist.
-2.  **Seeds Draws:** Populates the `draws` table with the full schedule for the current day, but only if the table is empty.
-3.  **Seeds/Resets Users:** Ensures the default admin and client users exist and **resets their passwords to the default values**. If you are ever locked out or can't log in with the default credentials, run this command again to fix it.
-
-This process ensures the following accounts are available:
--   An **admin** user with username `01` and password `password`.
--   A **client** user with Client ID `02`, username `Sample Client`, and password `password`.
-
-**Security Warning:** You should log in and change these default passwords immediately.
-
-### 6. Configure Environment Variables
-
-Create a `.env` file inside the `backend` directory. This file stores sensitive configuration details that your application needs to run.
-
-```bash
-# Still inside the 'backend' directory
-nano .env
-```
-
-Paste the following content into the file, **replacing the placeholder values with your actual credentials**.
-
-```env
-# Backend Server Port
-PORT=5000
-
-# JSON Web Token Secret - IMPORTANT: This MUST be a long, random, and secret string.
-# DO NOT use an API key or a simple password here.
-# You can generate a strong secret with: openssl rand -base64 32
-JWT_SECRET=your_super_strong_and_secret_jwt_key_here
-
-# Google Gemini API Key (For AI analysis features)
-API_KEY=AIzaSyCF0j0LFCwPdpz30sdfiyEHG44qlLIGW1Q
-
-# --- MySQL Database Connection ---
-# Use 127.0.0.1 for the host to avoid potential network issues with 'localhost'.
-# Use the database credentials you created in Step 5.
-
-DB_HOST=127.0.0.1
-DB_USER=ddl_user
-DB_PASSWORD=your_strong_password
-DB_DATABASE=mydb
-```
-
-Save the file (in `nano`, press `CTRL+X`, then `Y`, then `Enter`).
-
-### 7. Start the Application with PM2
-
-Now, go back to the project's root directory and start the application using PM2. The `ecosystem.config.js` file will automatically provide all necessary environment variables.
+From the project's **root directory**, start the application using PM2.
 
 ```bash
 # Go back to the root of your project
@@ -150,26 +90,19 @@ cd ..
 pm2 start ecosystem.config.js
 ```
 
-Your application is now running! However, it's only accessible directly via port 5000. The next step is to configure Nginx to make it accessible through your domain.
+### 6. Configure Nginx
 
-### 8. Configure Nginx and Secure with SSL
-
-For a production environment on `dubailott.live`, it's essential to run your app behind Nginx as a reverse proxy.
-
-#### A. Basic Nginx Configuration (HTTP)
-
-Create a new Nginx configuration file for your site:
+Configure Nginx as a reverse proxy to make your application accessible on port 80/443. Create a new Nginx configuration file:
 ```bash
-sudo nano /etc/nginx/sites-available/dubailott.live
+sudo nano /etc/nginx/sites-available/yourdomain.com
 ```
 
-Paste the following configuration, which forwards requests to your application running on port 5000.
+Paste the following configuration, replacing `yourdomain.com` with your actual domain.
 
 ```nginx
-# /etc/nginx/sites-available/dubailott.live
 server {
     listen 80;
-    server_name dubailott.live www.dubailott.live;
+    server_name yourdomain.com www.yourdomain.com;
 
     location / {
         proxy_pass http://localhost:5000;
@@ -182,87 +115,61 @@ server {
 }
 ```
 
-Enable the site by creating a symbolic link:
+Enable the site, test the configuration, and restart Nginx.
 ```bash
-sudo ln -s /etc/nginx/sites-available/dubailott.live /etc/nginx/sites-enabled/
-```
-
-Test the Nginx configuration and restart the service:
-```bash
+sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-At this point, you should be able to access your site at `http://dubailott.live`.
-
-#### B. Adding SSL with Let's Encrypt (HTTPS)
-
-First, install Certbot, the tool for obtaining SSL certificates from Let's Encrypt.
+Finally, secure your site with an SSL certificate using Certbot.
 ```bash
-sudo apt update
 sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ```
 
-Now, run Certbot. It will automatically detect your `dubailott.live` configuration, obtain a certificate, and update your Nginx file to handle HTTPS and redirect HTTP traffic.
+---
 
-```bash
-sudo certbot --nginx -d dubailott.live -d www.dubailott.live
-```
+## Deployment Option 2: Jamstack with Cloudflare Pages (Recommended)
 
-Follow the on-screen prompts. Certbot will handle the rest. Your site will now be secure and accessible at `https://dubailott.live`.
+This architecture separates the frontend (on Cloudflare) and the backend (on your VPS).
 
-### 9. Managing the Application
+### Part A: Deploying the Backend to Your VPS
 
-Here are some useful PM2 commands:
+1.  Follow **all the steps** in the [backend/README.md](./backend/README.md) file to get your backend running on your VPS, served by PM2.
+2.  Configure Nginx on your VPS to act as a reverse proxy for your backend, ideally on a subdomain like `api.yourdomain.com`.
+3.  Secure your API endpoint with an SSL certificate using Certbot.
+4.  Ensure your backend has CORS enabled. The default `cors()` middleware in `server.js` is permissive and should work. For better security, you can restrict it to your Cloudflare domain: `app.use(cors({ origin: 'https://your-cloudflare-app.pages.dev' }));`.
 
--   **List running processes:** `pm2 list`
--   **View real-time logs:** `pm2 logs ddl-backend`
--   **Restart the application:** `pm2 restart ddl-backend`
--   **Stop the application:** `pm2 stop ddl-backend`
--   **Save the process list to restart on server reboot:** `pm2 save`
+### Part B: Deploying the Frontend to Cloudflare Pages
 
-### 10. Troubleshooting
+1.  **Push your code to GitHub:** Make sure your repository is up to date.
+2.  **Create a new Cloudflare Pages project:**
+    -   Log in to your Cloudflare dashboard.
+    -   Go to **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
+    -   Select your project repository.
+3.  **Configure the build settings:**
+    -   **Project name:** Choose a name for your site.
+    -   **Production branch:** Select `main` (or your primary branch).
+    -   **Framework preset:** Select `Vite`.
+    -   **Build command:** `npm run build`
+    -   **Build output directory:** `dist`
+4.  **Add Environment Variables:**
+    -   Go to **Settings** > **Environment variables**.
+    -   Add the following variables for your **Production** environment:
+        -   `VITE_API_BASE_URL`: The full URL to your backend API on the VPS (e.g., `https://api.yourdomain.com`).
+        -   `VITE_GEMINI_API_KEY`: Your Google Gemini API key.
+5.  **Save and Deploy:** Click "Save and Deploy". Cloudflare will now build and deploy your frontend.
 
-#### Problem: Application fails to start or scripts fail with "Access Denied"
+Your application is now live on Cloudflare's global network, with the frontend automatically calling your secure backend API.
 
-This is the most common deployment issue. It means the application cannot log in to the MySQL database because the credentials it's using are incorrect.
+### Local Development for Jamstack
 
-**You will see an error message like this:**
-```
-Error: Access denied for user ''@'localhost' (using password: NO)
-```
+To run this setup locally:
+1.  Create a `.env` file in the project root.
+2.  Add your `VITE_GEMINI_API_KEY`.
+3.  Leave `VITE_API_BASE_URL` empty.
+4.  Run your backend server from the `backend` directory (`npm run dev`).
+5.  Run your frontend server from the root directory (`npm run dev`).
 
-**Root Cause:** There is a mismatch between the credentials in your `backend/.env` file and the credentials in the MySQL database itself. This error specifically means the application tried to connect with no username and no password, which proves the `.env` file is not being loaded.
-
-**Solution Checklist:**
-
-1.  **Check `backend/.env`:** This file is the **only** place your secrets should be stored. Make sure it exists inside the `backend` directory, is named exactly `.env` (not `.env.txt`), and that `DB_USER`, `DB_PASSWORD`, and `DB_DATABASE` are correct.
-    ```bash
-    # In your project's root directory
-    nano backend/.env
-    ```
-
-2.  **Verify MySQL User and Password:** Guarantee the password in MySQL is what you think it is. Run this command, replacing the password if needed. This command is safe and will fix any password mismatches.
-    ```bash
-    sudo mysql -e "ALTER USER 'ddl_user'@'localhost' IDENTIFIED BY 'your_strong_password';"
-    ```
-
-3.  **Restart PM2 Correctly:** After making any changes to the `.env` file, you **must** restart the PM2 process for it to pick up the new values.
-    ```bash
-    pm2 restart ddl-backend
-    ```
-
-By ensuring your MySQL credentials are correct and they match what's in your `backend/.env` file, you will solve any "Access Denied" errors.
-
-
-#### Problem: Admin login fails with "Invalid credentials"
-
--   **Cause:** The password stored in the database for the admin user (`01`) is incorrect, or you have forgotten a custom password you set.
--   **Solution:** A dedicated script is provided to safely reset **only** the admin password back to the default (`password`) without affecting any other data.
-    1.  Make sure you have correctly configured your `backend/.env` file as described in Step 6.
-    2.  From the `backend` directory, run the following command:
-        ```bash
-        # This will reset the admin password to 'password'
-        npm run admin:reset-password
-        ```
-    3.  After the script confirms success, try logging in again with username `01` and password `password`.
+The Vite development server is pre-configured with a proxy that will automatically forward API requests from `/api` to your local backend on port 5000, avoiding CORS issues.

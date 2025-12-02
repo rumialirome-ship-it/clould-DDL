@@ -1,16 +1,20 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
-  return {
-    plugins: [react()],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: 'dist',
+  },
+  // The server proxy is useful for local development to avoid CORS issues
+  // when the frontend (Vite dev server) and backend run on different ports.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000', // Your local backend server
+        changeOrigin: true,
+      },
     },
-    build: {
-      outDir: 'dist',
-    },
-  }
+  },
 })
